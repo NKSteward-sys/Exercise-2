@@ -2,6 +2,10 @@ import numpy as np
 import re
 import matplotlib.pyplot as plt
 
+from matplotlib import cm
+
+plt.style.use('_mpl-gallery')
+
 #Explain this! 
 def PES_Filereader(Folder): 
 
@@ -9,6 +13,8 @@ def PES_Filereader(Folder):
     using hardcoded parameters dependening on the input directory."""
 
     filenames = [] 
+    r_list = []
+    theta_list = []
 
     if "H2Ooutfiles" in Folder:
 
@@ -22,13 +28,17 @@ def PES_Filereader(Folder):
     
     else: 
         print("Sorry, this isn't a directory I can parse. Make sure you've pasted the full file path.")
+        exit()
 
     for r in r_range:
         for theta in range(70, 161, 1):
             filenames.append(f"{Folder}/{molecule}.r{r:.2f}theta{theta}.0.out")
+            r_list.append(round(r, 5))
+            theta_list.append(round(theta,5))
             
-    """Now that we have the list of filenames. We can iteratively open each file and read the contents. Using regular expressions, we search for the line with the energy
-      and extract the numerical value of the energy. We then close the file."""
+    """Now that we have the list of filenames. We can iteratively open each file and read the contents. 
+    Using regular expressions, we search for the line with the energyand extract the numerical value of the energy. We then close the file and move on to the next. 
+    At the end of the process, a list of energies is output in same order as the files in the directory.  """
 
     Energies = []
     for name in filenames: 
@@ -41,9 +51,10 @@ def PES_Filereader(Folder):
                 break
 
         Gaussian_Output.close()
-    
-    print(len(Energies))
+    return(Energies, r_list, theta_list)
 
+#def PES_landscaper(Energy, r, theta):
+    
 
 
 
@@ -53,6 +64,4 @@ def PES_Filereader(Folder):
 if __name__ == "__main__":
     UserFolder = input("What is the folder name?")
 
-    PES_Filereader(UserFolder)
-
-#NB E is not in line 168 with H2O r = 1.9 and theta = 153 
+    Energies_in, r_in, theta_in = PES_Filereader(UserFolder)
