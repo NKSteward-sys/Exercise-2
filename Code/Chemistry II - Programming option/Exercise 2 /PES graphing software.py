@@ -6,7 +6,7 @@ from matplotlib import cm
 
 plt.style.use('_mpl-gallery')
 
-#Explain this! 
+
 def PES_Filereader(Folder): 
 
     """The first step in reading these directories is generating the list of filenames. I have used loops to generate a list of filenames
@@ -53,11 +53,25 @@ def PES_Filereader(Folder):
         Gaussian_Output.close()
     return(Energies, r_list, theta_list)
 
-#def PES_landscaper(Energy, r, theta):
-    
+#Comments!
+def PES_landscaper(Energy, r, theta):
 
+    Energy = np.array(Energy) 
+    theta = np.array(theta)
+    r = np.array(r)
 
+    fig, ax = plt.subplots(subplot_kw={'projection': '3d'}, figsize = (10,7))
+    surf = ax.plot_trisurf(r, theta, Energy, cmap=cm.viridis, edgecolor='none', antialiased=True)
 
+    fig.colorbar(surf, ax=ax, shrink=0.5, aspect=5)
+
+    ax.set_xlabel("Bond Length (r) / Å")
+    ax.set_ylabel("Bond Angle (Theta) / °")
+    ax.set_zlabel("Energies / Hartrees")
+
+    plt.show()
+
+#def PES_Vibrational_Freq():
 
 
 
@@ -65,3 +79,24 @@ if __name__ == "__main__":
     UserFolder = input("What is the folder name?")
 
     Energies_in, r_in, theta_in = PES_Filereader(UserFolder)
+
+    Type_of_query = input("Which function should I perform?" \
+    "1. Calculate and graph the PES"\
+        "2. Calculate the vibrational frequencies")
+    if Type_of_query == "1": 
+        PES_landscaper(Energies_in, r_in,  theta_in)
+        exit()
+    
+    elif Type_of_query == "2": 
+        #PES Vibrational Freq
+        exit()
+    
+    else: 
+        Type_of_query = input("""Which function should I perform? (Please use the indicies next to each option)" 
+    1. Calculate and graph the PES
+    2. Calculate the vibrational frequencies""")
+
+
+
+
+    
