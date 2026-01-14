@@ -51,14 +51,17 @@ def PES_Filereader(Folder):
                 break
 
         Gaussian_Output.close()
-    return(Energies, r_list, theta_list)
+    
+    #The below code makes sure all of the variables exit the function as arrays. This is probably not necessary for r and theta. 
+
+    Energies = np.array(Energies) 
+    theta_array = np.array(theta_list)
+    r_array = np.array(r_list)
+
+    return(Energies, r_array, theta_array, r_range)
 
 #Comments!
 def PES_landscaper(Energy, r, theta):
-
-    Energy = np.array(Energy) 
-    theta = np.array(theta)
-    r = np.array(r)
 
     fig, ax = plt.subplots(subplot_kw={'projection': '3d'}, figsize = (10,7))
     surf = ax.plot_trisurf(r, theta, Energy, cmap=cm.viridis, edgecolor='none', antialiased=True)
@@ -71,28 +74,37 @@ def PES_landscaper(Energy, r, theta):
 
     plt.show()
 
-#def PES_Vibrational_Freq():
+def PES_Vibrational_Freq(Energy, r, theta, r_range):
+
+    #This creates a grid of the energies, with r on the x axis and theta on the y axis. It is necessary to find the hessian matrix. 
+    E_grid = Energy.reshape(len(r_range), 91)
+    print(E_grid)
 
 
 
 if __name__ == "__main__":
     UserFolder = input("What is the folder name?")
 
-    Energies_in, r_in, theta_in = PES_Filereader(UserFolder)
+    Energies_in, r_in, theta_in, range_in = PES_Filereader(UserFolder)
 
-    Type_of_query = input("Which function should I perform?" \
-    "1. Calculate and graph the PES"\
-        "2. Calculate the vibrational frequencies")
+    Type_of_query = input("""Which function should I perform?
+        1. Calculate and graph the PES
+        2. Calculate the vibrational frequencies
+        3. Exit""")
+
     if Type_of_query == "1": 
         PES_landscaper(Energies_in, r_in,  theta_in)
         exit()
     
     elif Type_of_query == "2": 
-        #PES Vibrational Freq
+        PES_Vibrational_Freq(Energies_in, r_in, theta_in, range_in)
+        exit()
+
+    elif Type_of_query == "3": 
         exit()
     
     else: 
-        Type_of_query = input("""Which function should I perform? (Please use the indicies next to each option)" 
+        Type_of_query = input("""Which function should I perform? (Please use the indicies next to each option)
     1. Calculate and graph the PES
     2. Calculate the vibrational frequencies""")
 
