@@ -74,11 +74,19 @@ def PES_landscaper(Energy, r, theta):
 
     plt.show()
 
-def PES_Vibrational_Freq(Energy, r, theta, r_range):
+#Comments!
+def PES_Vibrational_Freq(Energy, r, theta, r_range): 
 
     #This creates a grid of the energies, with r on the x axis and theta on the y axis. It is necessary to find the hessian matrix. 
     E_grid = Energy.reshape(len(r_range), 91)
-    print(E_grid)
+    Equi_row, Equi_coloumn = np.where(E_grid == E_grid.min())
+    
+
+    r_grad, theta_grad = np.gradient(E_grid, 0.05, 1)
+
+    Second_deriv_of_r = np.gradient(r_grad, 0.05, axis = 0)
+    Second_deriv_of_theta = np.gradient(theta_grad, 1, axis = 0)
+
 
 
 
