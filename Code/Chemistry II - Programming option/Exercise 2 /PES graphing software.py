@@ -1,7 +1,7 @@
 import numpy as np
 import re
 import matplotlib.pyplot as plt
-
+from numpy import linalg as LA
 from matplotlib import cm
 
 plt.style.use('_mpl-gallery')
@@ -86,6 +86,11 @@ def PES_Vibrational_Freq(Energy, r, theta, r_range):
 
     Second_deriv_of_r = np.gradient(r_grad, 0.05, axis = 0)
     Second_deriv_of_theta = np.gradient(theta_grad, 1, axis = 0)
+    drdtheta = np.gradient(r_grad, 1 , axis = 1)
+    Hessian_matrix = np.array([[Second_deriv_of_r[Equi_row, Equi_coloumn], drdtheta[Equi_row, Equi_coloumn]], 
+                               [drdtheta[Equi_row, Equi_coloumn], Second_deriv_of_theta[Equi_row, Equi_coloumn]]])
+    Frequencies, Eigenvectors = LA.eig(Hessian_matrix.transpose(2,0,1))
+    print(Frequencies)
 
 
 
