@@ -22,7 +22,6 @@ def PES_Filereader(Folder):
 
         r_range = np.arange(0.70, 1.95, 0.05)
         molecule = "H2O"
-        red_mass = 2*1.66*(10**(-27))
 
     elif "H2Soutfiles" in Folder: 
 
@@ -79,7 +78,7 @@ def PES_landscaper(Energy, r, theta):
 
     plt.show()
 
-#Comments!
+
 def PES_Vibrational_Freq(Energy, r, theta, r_range): 
 
     red_mass_1 = 2*1.66*(10**(-27))
@@ -119,17 +118,18 @@ def PES_Vibrational_Freq(Energy, r, theta, r_range):
 
     K_r = kr_ktheta[0][0]
     K_theta = kr_ktheta[0][1]
+    r_equilibrium = r_range[Equi_row]*Angstrom_to_m
 
     Frequency_symmetric = ((1/(2*np.pi))*np.sqrt(K_r/red_mass_1))/(3*10**10)
-    Frequency_bend = ((1/(2*np.pi))*np.sqrt(K_theta/red_mass_2))/3*10**10
+    Frequency_bend = ((1/(2*np.pi))*np.sqrt(K_theta/(r_equilibrium**2*red_mass_2)))/(3*10**10)
 
     print(Frequency_symmetric)
-    print(kr_ktheta[0][1])
+    print(Frequency_bend)
 
 
 
 if __name__ == "__main__":
-    UserFolder = input("What is the folder name?")
+    UserFolder = input("What is the directories filepath?")
 
     Energies_in, r_in, theta_in, range_in = PES_Filereader(UserFolder)
 
