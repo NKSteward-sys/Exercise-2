@@ -52,7 +52,6 @@ def PES_Filereader(Folder):
     Energies = np.array(Energies) 
     theta_array = np.array(theta_list)
     r_array = np.array(r_list)
-    print(Energies)
     return(Energies, r_array, theta_array)
 
 #Comments!
@@ -76,13 +75,16 @@ def PES_Vibrational_Freq(Energy, r, theta, r_range):
     unique_r = np.unique(r)
     unique_theta = np.unique(theta)
 
-
-
     red_mass_1 = 2*1.66*(10**(-27))
     red_mass_2 = 0.5*1.66*(10**(-27))
 
     #This creates a grid of the energies, with r on the x axis and theta on the y axis. It is necessary to find the hessian matrix. 
-    E_grid = Energy.reshape(len(unique_r),len(unique_theta))
+    E_grid = np.zeros([len(unique_r), len(unique_theta)])
+
+    for i in range(len(Energy)):
+        r_idx = np.where(unique_r == r[i])[0][0]
+        theta_idx = np.where(unique_theta == theta[i])[0][0]
+        E_grid[r_idx, theta_idx] = Energy[i]
     
 
     Equi_row, Equi_coloumn = np.where(E_grid == E_grid.min())
@@ -104,18 +106,17 @@ def PES_Vibrational_Freq(Energy, r, theta, r_range):
     Degree_to_rad = np.pi / 180
 
     Second_deriv_of_r = Second_deriv_of_r * Hartree_to_J / (Angstrom_to_m**2)
-    
     Second_deriv_of_theta = Second_deriv_of_theta * Hartree_to_J / (Degree_to_rad**2)
-
     drdtheta = drdtheta * Hartree_to_J / (Degree_to_rad * Angstrom_to_m)
 
     Hessian_matrix = np.array([[Second_deriv_of_r, drdtheta], 
                                [drdtheta, Second_deriv_of_theta]])
     
-    kr_ktheta, Eigenvectors = LA.eig(Hessian_matrix.transpose(2,0,1))
+    Ei_vals, Eigenvectors = LA.eig(Hessian_matrix.transpose(2,0,1))
+ 
+    K_theta = Ei_vals[0][0]
+    K_r = Ei_vals[0][1]
 
-    K_r = kr_ktheta[0][0]
-    K_theta = kr_ktheta[0][1]
     r_equilibrium = r_range[Equi_row]*Angstrom_to_m
 
     Frequency_symmetric = ((1/(2*np.pi))*np.sqrt(K_r/red_mass_1))/(3*10**10)
