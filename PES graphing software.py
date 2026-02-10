@@ -107,7 +107,7 @@ def PES_Vibrational_Freq(Energy, r, theta, r_range):
 
     #This creates a grid of the energies, with r on the x axis and theta on the y axis. It is necessary to find the hessian matrix. 
     E_grid = Energy.reshape(len(unique_r), len(unique_theta))
-    print(E_grid)
+    
 
     Equi_row, Equi_coloumn = np.where(E_grid == E_grid.min())
 
@@ -144,6 +144,7 @@ def PES_Vibrational_Freq(Energy, r, theta, r_range):
 
     Frequency_symmetric = ((1/(2*np.pi))*np.sqrt(K_r/red_mass_1))/(3*10**10)
     Frequency_bend = ((1/(2*np.pi))*np.sqrt(K_theta/(r_equilibrium**2*red_mass_2)))/(3*10**10)
+    print(Second_deriv_of_theta)
 
     print(Frequency_symmetric)
     print(Frequency_bend)
