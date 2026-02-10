@@ -145,7 +145,8 @@ def PES_Vibrational_Freq(Energy, r, theta, r_range):
     Frequency_symmetric = ((1/(2*np.pi))*np.sqrt(K_r/red_mass_1))/(3*10**10)
     Frequency_bend = ((1/(2*np.pi))*np.sqrt(K_theta/(r_equilibrium**2*red_mass_2)))/(3*10**10)
     print(Second_deriv_of_theta)
-
+    print(len(unique_r))
+    print(len(unique_theta))
     print(Frequency_symmetric)
     print(Frequency_bend)
 
