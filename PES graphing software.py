@@ -3,6 +3,7 @@ import re
 import matplotlib.pyplot as plt
 from numpy import linalg as LA
 from matplotlib import cm
+import os
 
 plt.style.use('_mpl-gallery')
 
@@ -13,41 +14,55 @@ def PES_Filereader(Folder):
     using hardcoded parameters dependening on the input directory."""
     global r_list
 
+    all_files = os.listdir(Folder)
 
-    filenames = [] 
+    all_files.sort()
+
+    # filenames = []
     r_list = []
     theta_list = []
 
-    if "H2Ooutfiles" in Folder:
+    # if "H2Ooutfiles" in Folder:
 
-        r_range = np.arange(0.70, 1.95, 0.05)
-        molecule = "H2O"
+    #     r_range = np.arange(0.70, 1.95, 0.05)
+    #     molecule = "H2O"
 
-    elif "H2Soutfiles" in Folder: 
+    # elif "H2Soutfiles" in Folder: 
 
-        r_range = np.arange(0.70, 1.85, 0.05)
-        molecule = "H2S"
+    #     r_range = np.arange(0.70, 1.85, 0.05)
+    #     molecule = "H2S"
 
     
-    else: 
-        print("Sorry, this isn't a directory I can parse. Make sure you've pasted the full file path.")
-        exit()
+    # else: 
+    #     print("Sorry, this isn't a directory I can parse. Make sure you've pasted the full file path.")
+    #     exit()
 
-    for r in r_range:
-        for theta in range(70, 161, 1):
-            filenames.append(f"{Folder}/{molecule}.r{r:.2f}theta{theta}.0.out")
-            r_list.append(round(r, 5))
-            theta_list.append(round(theta,5))
+    # for r in r_range:
+    #     for theta in range(70, 161, 1):
+    #         filenames.append(f"{Folder}/{molecule}.r{r:.2f}theta{theta}.0.out")
+    #         r_list.append(round(r, 5))
+    #         theta_list.append(round(theta,5))
             
     """Now that we have the list of filenames. We can iteratively open each file and read the contents. 
     Using regular expressions, we search for the line with the energyand extract the numerical value of the energy. We then close the file and move on to the next. 
     At the end of the process, a list of energies is output in same order as the files in the directory.  """
 
     Energies = []
-    for name in filenames: 
-        Gaussian_Output = open(name, 'r')
+    for name in all_files: 
 
-        #This reads each file but skips up to 166 
+        if not name.endswith('.out') or name.startswith('.'):
+            continue
+
+        r_value = re.search(r'\.r([-+]?\d*\.?\d+)theta', name)
+        r_list.append(float(r_value.group(1)))
+        
+
+        theta_value = re.search(r'theta([-+]?\d*\.?\d+)\.out', name)
+        theta_list.append(float(theta_value.group(1)))
+        
+        Gaussian_Output = open(f"{Folder}/{name}", 'r')
+
+        #This reads each file but skips up to line 166 
         for line in Gaussian_Output.readlines()[166:]: 
             match = re.search(r"E\(RHF\)\s*=?\s*([-+]?\d+\.\d+)", line)
             if match: 
@@ -56,13 +71,13 @@ def PES_Filereader(Folder):
 
         Gaussian_Output.close()
     
-    #The below code makes sure all of the variables exit the function as arrays. This is probably not necessary for r and theta. 
+    #The below code makes sure all of the variables exit the function as arrays. 
 
     Energies = np.array(Energies) 
     theta_array = np.array(theta_list)
     r_array = np.array(r_list)
-
-    return(Energies, r_array, theta_array, r_range)
+    print(Energies)
+    return(Energies, r_array, theta_array)
 
 #Comments!
 def PES_landscaper(Energy, r, theta):
@@ -81,11 +96,18 @@ def PES_landscaper(Energy, r, theta):
 
 def PES_Vibrational_Freq(Energy, r, theta, r_range): 
 
+
+    unique_r = np.unique(r)
+    unique_theta = np.unique(theta)
+
+
+
     red_mass_1 = 2*1.66*(10**(-27))
     red_mass_2 = 0.5*1.66*(10**(-27))
 
     #This creates a grid of the energies, with r on the x axis and theta on the y axis. It is necessary to find the hessian matrix. 
-    E_grid = Energy.reshape(len(r_range), 91)
+    E_grid = Energy.reshape(len(unique_r), len(unique_theta))
+    print(E_grid)
 
     Equi_row, Equi_coloumn = np.where(E_grid == E_grid.min())
 
@@ -131,7 +153,7 @@ def PES_Vibrational_Freq(Energy, r, theta, r_range):
 if __name__ == "__main__":
     UserFolder = input("What is the directories filepath?")
 
-    Energies_in, r_in, theta_in, range_in = PES_Filereader(UserFolder)
+    Energies_in, r_in, theta_in = PES_Filereader(UserFolder)
 
     Type_of_query = input("""Which function should I perform?
         1. Calculate and graph the PES
@@ -143,7 +165,7 @@ if __name__ == "__main__":
         exit()
     
     elif Type_of_query == "2": 
-        PES_Vibrational_Freq(Energies_in, r_in, theta_in, range_in)
+        PES_Vibrational_Freq(Energies_in, r_in, theta_in, r_in)
         exit()
 
     elif Type_of_query == "3": 
