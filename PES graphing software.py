@@ -69,58 +69,63 @@ def PES_landscaper(Energy, r, theta):
     plt.show()
 
 
-def PES_Vibrational_Freq(Energy, r, theta, r_range): 
+def PES_Vibrational_Freq(Energy, r, theta): 
 
-
+    #Extracts the unique values of r/theta from the list of every value of r/theta that filereader provides
     unique_r = np.unique(r)
     unique_theta = np.unique(theta)
 
+    #Reduced masses (hardcoded)
     red_mass_1 = 2*1.66*(10**(-27))
     red_mass_2 = 0.5*1.66*(10**(-27))
 
-    #This creates a grid of the energies, with r on the x axis and theta on the y axis. It is necessary to find the hessian matrix. 
-    E_grid = np.zeros([len(unique_r), len(unique_theta)])
-
-    for i in range(len(Energy)):
-        r_idx = np.where(unique_r == r[i])[0][0]
-        theta_idx = np.where(unique_theta == theta[i])[0][0]
-        E_grid[r_idx, theta_idx] = Energy[i]
+    """Energies are grouped by theta and sorted, then sorted by r. This is then put through a standard "C" reshape.
+    This ends up generating E_grid as a 2D array of """
+    indices = np.lexsort((r, theta)) 
+    sorted_Energy = Energy[indices]
     
+    E_grid = sorted_Energy.reshape(( len(unique_theta),len(unique_r)))
 
+    
+    #This determines the equilibrium geometery by finding the minimum value of the energy
     Equi_row, Equi_coloumn = np.where(E_grid == E_grid.min())
+    Equi_theta = Equi_row[0]
+    Equi_r = Equi_coloumn[0]
 
-    """Finding the elements of the hessian matrix, we do this by taking the derivative with respect to theta and r.
-    Then taking those two matrixes and taking the derivative again!
-    We also use conversion factors to change the units from hartrees / angstrom^2 to J/m^2 """
-    
-    r_grad, theta_grad = np.gradient(E_grid, 0.05, 1)
-
-    Second_deriv_of_r = np.gradient(r_grad, 0.05, axis = 0)[Equi_row, Equi_coloumn]
-
-    Second_deriv_of_theta = np.gradient(theta_grad, 1, axis = 1)[Equi_row, Equi_coloumn]
-
-    drdtheta = np.gradient(r_grad, 1 , axis = 1)[Equi_row, Equi_coloumn]
+    """This is a set of hardcoded conversion factors to convert the elements of our hessian matrix to SI units"""
 
     Hartree_to_J = 4.3597447222071e-18
     Angstrom_to_m = 1e-10
     Degree_to_rad = np.pi / 180
+    r_equilibrium = unique_r[Equi_r]*Angstrom_to_m
 
-    Second_deriv_of_r = Second_deriv_of_r * Hartree_to_J / (Angstrom_to_m**2)
-    Second_deriv_of_theta = Second_deriv_of_theta * Hartree_to_J / (Degree_to_rad**2)
-    drdtheta = drdtheta * Hartree_to_J / (Degree_to_rad * Angstrom_to_m)
+    """Finding the elements of the hessian matrix finding the gradient along each axis (corresponding to theta and r).
+    Then taking those two matrixes and taking the derivative again, this time at the equilibrium geometry"""
+    
+    theta_grad, r_grad  = np.gradient(E_grid, 1, 0.05)
+
+    Second_deriv_of_r = np.gradient(r_grad, 0.05, axis = 1)[Equi_theta, Equi_r]
+    Second_deriv_of_theta = np.gradient(theta_grad, 1, axis = 0)[Equi_theta, Equi_r]
+    drdtheta = np.gradient(r_grad, 1 , axis = 0)[Equi_theta, Equi_r]
+
+
+    Second_deriv_of_r = Second_deriv_of_r * Hartree_to_J / ((Angstrom_to_m**2)*red_mass_1)
+    Second_deriv_of_theta = Second_deriv_of_theta * Hartree_to_J / ((Degree_to_rad**2)*red_mass_2*r_equilibrium**2)
+    drdtheta = drdtheta * Hartree_to_J / (Degree_to_rad * Angstrom_to_m* np.sqrt(red_mass_2*r_equilibrium**2*red_mass_1))
 
     Hessian_matrix = np.array([[Second_deriv_of_r, drdtheta], 
                                [drdtheta, Second_deriv_of_theta]])
     
-    Ei_vals, Eigenvectors = LA.eig(Hessian_matrix.transpose(2,0,1))
+    Ei_vals, Eigenvectors = LA.eig(Hessian_matrix)
  
-    K_theta = Ei_vals[0][0]
-    K_r = Ei_vals[0][1]
+    Ei_vals.sort()
+    K_theta = Ei_vals[0]
+    K_r = Ei_vals[1]
 
-    r_equilibrium = r_range[Equi_row]*Angstrom_to_m
+    
 
-    Frequency_symmetric = ((1/(2*np.pi))*np.sqrt(K_r/red_mass_1))/(3*10**10)
-    Frequency_bend = ((1/(2*np.pi))*np.sqrt(K_theta/(r_equilibrium**2*red_mass_2)))/(3*10**10)
+    Frequency_symmetric = ((1/(2*np.pi))*np.sqrt(K_r))/(3*10**10)
+    Frequency_bend = ((1/(2*np.pi))*np.sqrt(K_theta))/(2.9979*10**10)
 
     print(Frequency_symmetric)
     print(Frequency_bend)
@@ -142,7 +147,7 @@ if __name__ == "__main__":
         exit()
     
     elif Type_of_query == "2": 
-        PES_Vibrational_Freq(Energies_in, r_in, theta_in, r_in)
+        PES_Vibrational_Freq(Energies_in, r_in, theta_in)
         exit()
 
     elif Type_of_query == "3": 
