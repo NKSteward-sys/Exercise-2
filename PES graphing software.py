@@ -3,6 +3,7 @@ import re
 import matplotlib.pyplot as plt
 from numpy import linalg as LA
 from matplotlib import cm
+from scipy.optimize import curve_fit
 import os
 
 plt.style.use('_mpl-gallery')
@@ -76,59 +77,76 @@ def PES_Vibrational_Freq(Energy, r, theta):
     unique_theta = np.unique(theta)
 
     #Reduced masses (hardcoded)
-    red_mass_1 = 2*1.66*(10**(-27))
-    red_mass_2 = 0.5*1.66*(10**(-27))
+    red_mass_r = 2*1.66*(10**(-27))
+    red_mass_theta = 0.5*1.66*(10**(-27))
 
     """Energies are grouped by theta and sorted, then sorted by r. This is then put through a standard "C" reshape.
-    This ends up generating E_grid as a 2D array of """
+    This ends up generating E_grid as a 2D array of energies with theta on x and r on y. 
+    We also generate two 1D arrays to describe the r and theta at each point in the grid for the fit."""
+
     indices = np.lexsort((r, theta)) 
     sorted_Energy = Energy[indices]
+    E_grid = sorted_Energy.reshape((len(unique_theta),len(unique_r)))
+    R, THETA = np.meshgrid(unique_r, unique_theta)
+   
+    r_flat_array = R.flatten()
+    theta_flat_array = THETA.flatten()
+    coords_flat = np.vstack((r_flat_array, theta_flat_array))
     
-    E_grid = sorted_Energy.reshape(( len(unique_theta),len(unique_r)))
+    #Now we grab the equilibrium geometries
 
-    
-    #This determines the equilibrium geometery by finding the minimum value of the energy
     Equi_row, Equi_coloumn = np.where(E_grid == E_grid.min())
     Equi_theta = Equi_row[0]
     Equi_r = Equi_coloumn[0]
-
-    """This is a set of hardcoded conversion factors to convert the elements of our hessian matrix to SI units"""
-
-    Hartree_to_J = 4.3597447222071e-18
-    Angstrom_to_m = 1e-10
-    Degree_to_rad = np.pi / 180
-    r_equilibrium = unique_r[Equi_r]*Angstrom_to_m
-
-    """Finding the elements of the hessian matrix finding the gradient along each axis (corresponding to theta and r).
-    Then taking those two matrixes and taking the derivative again, this time at the equilibrium geometry"""
     
-    theta_grad, r_grad  = np.gradient(E_grid, 1, 0.05)
 
-    Second_deriv_of_r = np.gradient(r_grad, 0.05, axis = 1)[Equi_theta, Equi_r]
-    Second_deriv_of_theta = np.gradient(theta_grad, 1, axis = 0)[Equi_theta, Equi_r]
-    drdtheta = np.gradient(r_grad, 1 , axis = 0)[Equi_theta, Equi_r]
+    #Now we find guesses for K theta and K r using a rough mass weighted hessian
+    theta_grad, r_grad = np.gradient(E_grid, unique_theta, unique_r)
+    Second_deriv_of_r = np.gradient(r_grad, unique_r, axis=1)[Equi_theta, Equi_r]
+    Second_deriv_of_theta = np.gradient(theta_grad, unique_theta, axis=0)[Equi_theta, Equi_r]
+    drdtheta = np.gradient(r_grad, unique_theta, axis=0)[Equi_theta, Equi_r]
 
-
-    Second_deriv_of_r = Second_deriv_of_r * Hartree_to_J / ((Angstrom_to_m**2)*red_mass_1)
-    Second_deriv_of_theta = Second_deriv_of_theta * Hartree_to_J / ((Degree_to_rad**2)*red_mass_2*r_equilibrium**2)
-    drdtheta = drdtheta * Hartree_to_J / (Degree_to_rad * Angstrom_to_m* np.sqrt(red_mass_2*r_equilibrium**2*red_mass_1))
-
-    Hessian_matrix = np.array([[Second_deriv_of_r, drdtheta], 
-                               [drdtheta, Second_deriv_of_theta]])
+    Guessian_matrix = np.array([[Second_deriv_of_r, drdtheta],
+                                  [drdtheta, Second_deriv_of_theta]])
     
-    Ei_vals, Eigenvectors = LA.eig(Hessian_matrix)
- 
+
+    Ei_vals, Eigenvectors = LA.eigh(Guessian_matrix)
+
     Ei_vals.sort()
-    K_theta = Ei_vals[0]
-    K_r = Ei_vals[1]
 
+    K_theta_approx = Ei_vals[0]
+    K_r_approx = Ei_vals[1]
+
+    def PES_fit_func(coords, E_0, K_r, K_theta, r_equiv, theta_equiv):
+        r_val, theta_val = coords
+        return E_0 + 0.5 * K_r * (r_val - r_equiv)**2 + 0.5 * K_theta * (theta_val - theta_equiv)**2
     
+    initial_guesses = [E_grid.min(), K_r_approx, K_theta_approx, unique_r[Equi_r], unique_theta[Equi_theta]]
 
-    Frequency_symmetric = ((1/(2*np.pi))*np.sqrt(K_r))/(3*10**10)
-    Frequency_bend = ((1/(2*np.pi))*np.sqrt(K_theta))/(2.9979*10**10)
+    popt, pcov = curve_fit(PES_fit_func, coords_flat, sorted_Energy, p0=initial_guesses)
+
+    fitted_K_r, fitted_K_theta = popt[1], popt[2]
+
+    Hartree_to_J = 4.35974e-18
+    Angstrom_to_m = 1e-10
+
+    k_r_SI = fitted_K_r * Hartree_to_J / (Angstrom_to_m**2)
+    k_theta_SI = fitted_K_theta * Hartree_to_J * ((180 / np.pi)**2)
+
+    r_eq_m = popt[3] * Angstrom_to_m 
+    moment_of_inertia = red_mass_theta * (r_eq_m**2)
+
+    omega_r = np.sqrt(k_r_SI / red_mass_r)
+    omega_theta = np.sqrt(k_theta_SI / moment_of_inertia)
+
+    c_cm = 2.9979e10
+
+    Frequency_symmetric = (omega_r / (2 * np.pi)) / c_cm
+    Frequency_bend = (omega_theta / (2 * np.pi)) / c_cm
 
     print(Frequency_symmetric)
     print(Frequency_bend)
+  
 
 
 
