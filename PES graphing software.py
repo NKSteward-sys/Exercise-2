@@ -76,6 +76,13 @@ def PES_Vibrational_Freq(Energy, r, theta):
     unique_r = np.unique(r)
     unique_theta = np.unique(theta)
 
+    #Extracts the average step size for theta and r
+    theta_diffs = np.diff(np.sort(unique_theta))
+    r_diffs = np.diff(np.sort(unique_r))
+
+    theta_step = theta_diffs[0]
+    r_step = r_diffs[0]
+
     #Reduced masses (hardcoded)
     red_mass_r = 2*1.66*(10**(-27))
     red_mass_theta = 0.5*1.66*(10**(-27))
@@ -96,15 +103,15 @@ def PES_Vibrational_Freq(Energy, r, theta):
     #Now we grab the equilibrium geometries
 
     Equi_row, Equi_coloumn = np.where(E_grid == E_grid.min())
-    Equi_theta = Equi_row[0]
-    Equi_r = Equi_coloumn[0]
+    Equi_theta_idx = Equi_row[0]
+    Equi_r_idx = Equi_coloumn[0]
     
 
     #Now we find guesses for K theta and K r using a rough mass weighted hessian
     theta_grad, r_grad = np.gradient(E_grid, unique_theta, unique_r)
-    Second_deriv_of_r = np.gradient(r_grad, unique_r, axis=1)[Equi_theta, Equi_r]
-    Second_deriv_of_theta = np.gradient(theta_grad, unique_theta, axis=0)[Equi_theta, Equi_r]
-    drdtheta = np.gradient(r_grad, unique_theta, axis=0)[Equi_theta, Equi_r]
+    Second_deriv_of_r = np.gradient(r_grad, unique_r, axis=1)[Equi_theta_idx, Equi_r_idx]
+    Second_deriv_of_theta = np.gradient(theta_grad, unique_theta, axis=0)[Equi_theta_idx, Equi_r_idx]
+    drdtheta = np.gradient(r_grad, unique_theta, axis=0)[Equi_theta_idx, Equi_r_idx]
 
     Guessian_matrix = np.array([[Second_deriv_of_r, drdtheta],
                                   [drdtheta, Second_deriv_of_theta]])
@@ -121,9 +128,20 @@ def PES_Vibrational_Freq(Energy, r, theta):
         r_val, theta_val = coords
         return E_0 + 0.5 * K_r * (r_val - r_equiv)**2 + 0.5 * K_theta * (theta_val - theta_equiv)**2
     
-    initial_guesses = [E_grid.min(), K_r_approx, K_theta_approx, unique_r[Equi_r], unique_theta[Equi_theta]]
+    initial_guesses = [E_grid.min(), K_r_approx, K_theta_approx, unique_r[Equi_r_idx], unique_theta[Equi_theta_idx]]
 
-    popt, pcov = curve_fit(PES_fit_func, coords_flat, sorted_Energy, p0=initial_guesses)
+    r_min = unique_r[Equi_r_idx] - 3 * r_step
+    r_max = unique_r[Equi_r_idx] + 3 * r_step
+    theta_min = unique_theta[Equi_theta_idx] - 10 * theta_step
+    theta_max = unique_theta[Equi_theta_idx] + 10 * theta_step
+    
+    Masked_coords_flat = (coords_flat[0, :] > r_min) & \
+                     (coords_flat[0, :] < r_max) & \
+                     (coords_flat[1, :] > theta_min) & \
+                     (coords_flat[1, :] < theta_max)
+
+
+    popt, pcov = curve_fit(PES_fit_func, Masked_coords_flat, sorted_Energy, p0=initial_guesses)
 
     fitted_K_r, fitted_K_theta = popt[1], popt[2]
 
@@ -170,12 +188,6 @@ if __name__ == "__main__":
 
     elif Type_of_query == "3": 
         exit()
-    
-    else: 
-        Type_of_query = input("""Which function should I perform? (Please use the indicies next to each option)
-    1. Calculate and graph the PES
-    2. Calculate the vibrational frequencies
-    3. Exit""")
 
 
 #Vib frequ  won't match exactly
