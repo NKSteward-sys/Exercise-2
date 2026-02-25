@@ -1,10 +1,10 @@
 This branch, FINAL, is my submission for exercise 2. 
 To run, it requires the additional libraries: 
-  Matplotlib 
-  numpy 
+  Matplotlib, 
+  numpy.
 It also uses: 
-  regular expressions 
-  os
+  regular expressions, 
+  os.
 It has been run on python 3.14 on UMD machines, and 3.11.8 on my own. 
 
 To use: 
