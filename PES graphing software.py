@@ -123,10 +123,9 @@ def PES_Vibrational_Freq(Energy, r, theta):
 
     #This creates a 2D array of the energies, with r on the x axis and theta on the y axis. 
     E_grid = sorted_Energy.reshape((len(unique_theta),len(unique_r)))
-
     Equi_row, Equi_coloumn = np.where(E_grid == E_grid.min())
 
-    #Conversion factor constants
+    #These are Conversion factor and other constants
     Hartree_to_J = 4.3597447222071 * 10 ** (-18)
     Angstrom_to_m = 1 * 10 ** (-10)
     Degree_to_rad = np.pi / 180
@@ -134,27 +133,21 @@ def PES_Vibrational_Freq(Energy, r, theta):
     moment_inertia = red_mass_theta * r_equilibrium ** 2 
     Speed_of_light_cm = 2.9979 * 10 ** (10)
 
-
-    #Hessian matrix element calculations    
+    #This is Hessian matrix element calculations    
     theta_grad, r_grad = np.gradient(E_grid, dtheta, dr)
-
     Second_deriv_of_r = np.gradient(r_grad, dr, axis = 1)[Equi_row, Equi_coloumn] * \
     Hartree_to_J / (red_mass_r * (Angstrom_to_m ** 2))
-
     Second_deriv_of_theta = np.gradient(theta_grad, dtheta, axis = 0)[Equi_row, Equi_coloumn] * \
     Hartree_to_J / ((Degree_to_rad ** 2) * moment_inertia)
-
     drdtheta = np.gradient(r_grad, dtheta, axis = 0)[Equi_row, Equi_coloumn] * Hartree_to_J \
     / ((Degree_to_rad * Angstrom_to_m) *np.sqrt(moment_inertia * red_mass_r))
     
-    #The creation of the hessian matrix using np.array, and redefinition using .transpose
+    #Here is creation of the hessian matrix using np.array, and redefinition using .transpose.
     Hessian_matrix = np.array([[Second_deriv_of_r, drdtheta],
     [drdtheta, Second_deriv_of_theta]])
 
     Hessian_matrix = Hessian_matrix.transpose(2, 0, 1)
-
     eigenvalues, Eigenvectors = LA.eigh(Hessian_matrix)
-
     kr = eigenvalues[:, 1]
     ktheta = eigenvalues[:, 0]
 
