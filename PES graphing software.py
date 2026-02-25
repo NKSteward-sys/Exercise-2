@@ -21,9 +21,8 @@ def PES_Filereader(Folder):
 
     r_list = []
     theta_list = []
-
-
     Energies = []
+   
     for name in all_files: 
 
         if not name.endswith('.out') or name.startswith('.'):
@@ -125,7 +124,8 @@ def PES_Vibrational_Freq(Energy, r, theta):
     Second_deriv_of_r = np.gradient(r_grad, dr, axis = 1)[Equi_row, Equi_coloumn] * Hartree_to_J / (red_mass_r * (Angstrom_to_m ** 2))
     Second_deriv_of_theta = np.gradient(theta_grad, dtheta, axis = 0)[Equi_row, Equi_coloumn] * Hartree_to_J / ((Degree_to_rad ** 2) * moment_inertia)
     drdtheta = np.gradient(r_grad, dtheta, axis = 0)[Equi_row, Equi_coloumn] * Hartree_to_J / ((Degree_to_rad * Angstrom_to_m) *np.sqrt(moment_inertia * red_mass_r))
-
+    
+    #The creation of the hessian matrix using np.array, and redefinition using .transpose
     Hessian_matrix = np.array([[Second_deriv_of_r, drdtheta],
     [drdtheta, Second_deriv_of_theta]])
 
